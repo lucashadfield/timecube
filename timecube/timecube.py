@@ -2,14 +2,13 @@ import asyncio
 import sys
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 
-def cycle(one_cycle):
-    cycle_len = len(one_cycle)
-    while True:
-        for i in range(cycle_len):
-            yield one_cycle[i], one_cycle[i + 1] if i + 1 < cycle_len else one_cycle[0]
+@dataclass
+class Interval:
+    type: str  # 'work', 'break', 'longbreak'
+    duration: int
+    alarm: str
 
 
 class TimeCube:
@@ -141,13 +140,6 @@ class TimeCube:
         if self.state in ('pause', 'summary', 'config'):
             self.transition_state(self.current_interval)
             self.interval_task = asyncio.create_task(self.start_interval_task(self.saved_interval_duration))
-
-
-@dataclass
-class Interval:
-    type: str  # 'work', 'break', 'longbreak'
-    duration: int
-    alarm: str
 
 
 class Config:
