@@ -2,6 +2,7 @@ import asyncio
 import sys
 import time
 from dataclasses import dataclass
+from math import ceil, floor
 
 
 @dataclass
@@ -81,7 +82,14 @@ class TimeCube:
         duration = self.current_interval.duration - offset
         if duration > 0:
             print(f'starting {self.current_interval.type} for {duration} seconds')
-            await asyncio.sleep(duration)
+
+            n_steps = ceil(duration)
+            first_step = duration - (n_steps - 1)
+
+            for i in range(n_steps):
+                await asyncio.sleep(1 if i else first_step)
+                print(f'{(floor(offset) + (i + 1)) / self.current_interval.duration:.0%}')
+
             print(f'finished {self.current_interval.type} ->  {self.next_interval.alarm}')
             # do end of task changes here + alarm
 
@@ -155,7 +163,7 @@ async def connect_stdin_stdout():
 
 
 async def main():
-    timecube = TimeCube(3, 1, 2, 3)
+    timecube = TimeCube(5, 1, 2, 3)
 
     timecube.start()
     print('this prints first')
