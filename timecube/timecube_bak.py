@@ -1,15 +1,20 @@
-import asyncio
+import uasyncio as asyncio
 import sys
-import time
-from dataclasses import dataclass
+import utime
+
+# from dataclasses import dataclass
+from collections import namedtuple
 from math import ceil, floor
+from machine import Pin
 
 
-@dataclass
-class Interval:
-    type: str  # 'work', 'break', 'longbreak'
-    duration: int
-    alarm: str
+# @dataclass
+# class Interval:
+#     type: str  # 'work', 'break', 'longbreak'
+#     duration: int
+#     alarm: str
+
+Interval = namedtuple('Interval', ['type', 'duration', 'alarm'])
 
 
 class TimeCube:
@@ -62,7 +67,7 @@ class TimeCube:
         return self.interval_cycle[(self.interval_id + 1) % len(self.interval_cycle)]
 
     def transition_state(self, new_state):
-        now = time.time()
+        now = utime.time()
         duration = now - self.state_start
         if isinstance(self.state, Interval):
             self.summary_stats[self.state.type] += duration
@@ -82,20 +87,20 @@ class TimeCube:
     async def start_interval_task(self, offset=0):
         duration = self.current_interval.duration - offset
         if duration > 0:
-            print(f'starting {self.current_interval.type} for {duration} seconds')
+            print('starting {} for {} seconds'.format(self.current_interval.type, duration))
 
             n_steps = ceil(duration)
             first_step = duration - (n_steps - 1)
 
             for i in range(n_steps):
                 await asyncio.sleep(1 if i else first_step)
-                print(f'{(floor(offset) + (i + 1)) / self.current_interval.duration:.0%}')
+                print('{:.0%}'.format((floor(offset) + (i + 1)) / self.current_interval.duration))
 
-            print(f'finished {self.current_interval.type} ->  {self.next_interval.alarm}')
+            print('finished {} ->  {}'.format(self.current_interval.type, self.next_interval.alarm))
             # do end of task changes here + alarm
 
     def start(self):
-        self.state_start = time.time()
+        self.state_start = utime.time()
         self.state = self.current_interval
         self.interval_task = asyncio.create_task(self.start_interval_task())
 
@@ -111,17 +116,20 @@ class TimeCube:
         if isinstance(self.state, Interval):
             self.interval_task.cancel()
 
-            self.summary_stats[f'{self.current_interval.type}_restarts'] += 1
+            self.summary_stats['{}_restarts'.format(self.current_interval.type)] += 1
             self.transition_state(self.current_interval)
             self.interval_task = asyncio.create_task(self.start_interval_task())
 
-    def pause(self):
+    def pause_resume(self):
         if isinstance(self.state, Interval):
             self.interval_task.cancel()
             if isinstance(self.state, Interval):
                 self.saved_interval_duration += self.transition_state('pause')
             else:
                 self.transition_state('pause')
+        elif self.state in ('pause', 'summary'):
+            self.transition_state(self.current_interval)
+            self.interval_task = asyncio.create_task(self.start_interval_task(self.saved_interval_duration))
 
             # do pause things
 
@@ -151,7 +159,6 @@ class TimeCube:
         else:
             # exit config mode
             if self.config_hash != hash(str(self.config)):
-                print('diff')
                 # new config
                 self.initialise()
                 self.start()
@@ -169,17 +176,17 @@ class TimeCube:
     def config_next(self):
         self.config_id = (self.config_id + 1) % len(self.config)
         config_item = list(self.config.keys())[self.config_id]
-        print(f'configuring {config_item}: {self.config[config_item]}')
+        print('configuring {}: {}'.format(config_item, self.config[config_item]))
 
     def config_increment(self):
         config_item = list(self.config.keys())[self.config_id]
         self.config[config_item] = min(self.config[config_item] + 1, 30000)
-        print(f'{config_item}: {self.config[config_item]}')
+        print('{}: {}'.format(config_item, self.config[config_item]))
 
     def config_decrement(self):
         config_item = list(self.config.keys())[self.config_id]
         self.config[config_item] = max(self.config[config_item] - 1, 1)
-        print(f'{config_item}: {self.config[config_item]}')
+        print('{}: {}'.format(config_item, self.config[config_item]))
 
 
 class Config:
@@ -203,28 +210,48 @@ async def main():
     timecube.start()
     print('this prints first')
 
-    reader = await connect_stdin_stdout()
+    # buttons
+    restart = Pin(18, Pin.IN, Pin.PULL_DOWN)
+    next = Pin(16, Pin.IN, Pin.PULL_DOWN)
+
+    pause = Pin(17, Pin.IN, Pin.PULL_DOWN)
+
+    config_decrement = Pin(14, Pin.IN, Pin.PULL_DOWN)
+    config_increment = Pin(15, Pin.IN, Pin.PULL_DOWN)
+
     while True:
-        await asyncio.sleep(0)
-        res = await reader.read(10)
-        if res == b'l\n':
-            timecube.start_next_interval()
-        elif res == b'j\n':
-            timecube.restart_current_interval()
-        elif res == b'k\n':
-            timecube.pause()
-        elif res == b'i\n':
-            timecube.resume()
-        elif res == b's\n':
-            timecube.summary()
-        elif res == b'c\n':
+        if config_decrement.value() and config_increment.value():
             timecube.config_mode()
-        elif res == b'0\n':
-            timecube.config_next()
-        elif res == b'-\n':
-            timecube.config_decrement()
-        elif res == b'=\n':
-            timecube.config_increment()
+        elif next.value():
+            timecube.start_next_interval()
+        elif restart.value():
+            timecube.restart_current_interval()
+        elif pause.value():
+            timecube.pause_resume()
+        asyncio.sleep_ms(50)
+
+    # reader = await connect_stdin_stdout()
+    # while True:
+    #     await asyncio.sleep(0)
+    #     res = await reader.read(10)
+    #     if res == b'l\n':
+    #         timecube.start_next_interval()
+    #     elif res == b'j\n':
+    #         timecube.restart_current_interval()
+    #     elif res == b'k\n':
+    #         timecube.pause()
+    #     elif res == b'i\n':
+    #         timecube.resume()
+    #     elif res == b's\n':
+    #         timecube.summary()
+    #     elif res == b'c\n':
+    #         timecube.config_mode()
+    #     elif res == b'0\n':
+    #         timecube.config_next()
+    #     elif res == b'-\n':
+    #         timecube.config_decrement()
+    #     elif res == b'=\n':
+    #         timecube.config_increment()
 
 
 if __name__ == '__main__':
