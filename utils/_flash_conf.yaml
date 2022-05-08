@@ -9,6 +9,6 @@ md5sum:
   main.py: 5d9dfa13594d06713bd5d82b57461421
   screen.py: 4ba3b381ea890b2c37d60c6645e1fe4b
   state.py: 81bfa3e0a71a824e7124fd7f43317c38
-  timecube.py: 38e9b6c523581cbd3f80cff0b0536a22
+  timecube.py: 4341e2f8d2a05f94daf86ede89ffefa2
 source_dir: ../timecube
 target_dir: /pyboard

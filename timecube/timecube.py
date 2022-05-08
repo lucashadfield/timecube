@@ -124,18 +124,22 @@ class TimeCube:
             # print('After end callback:', utime.ticks_diff(utime.ticks_ms(), self.state_start) / 1000)
 
     def _start_screen(self):
+        next_interval = self._next_interval.kind
+
         self.screen.start_interval(
             is_fill_black=True if self._current_interval.kind == 'work' else False,
             remaining_time=self._current_interval.duration // 60,
             remaining_prop=1,
-            next_interval=self._next_interval.kind,
+            next_interval=next_interval if next_interval == 'longbreak' else None,
         )
 
     def _update_screen(self, remaining_time: int, remaining_prop: float):
+        next_interval = self._next_interval.kind
+
         self.screen.update_interval(
             remaining_time=remaining_time,
             remaining_prop=remaining_prop,
-            next_interval=self._next_interval.kind,
+            next_interval=next_interval if next_interval == 'longbreak' else None,
         )
 
     def next(self):
