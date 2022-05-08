@@ -1,0 +1,14 @@
+md5sum:
+  accelerometer.py: f083669ac020ad14f89dfa70c69cc30e
+  button.py: 5f79f3831e5aba44820aa2b1e3c94fad
+  config.json: 85c5b5f9212d8f598448c529bda4c1f5
+  config.py: 4c5a42aa9730c343c771dec086dcbac0
+  epaper1in54v2.py: e6f589a12d605a5fcad439448cc9a659
+  font.py: 163c8b2a2a54a3551a5820bd53ddcbf6
+  framebuffer.py: 28c6ed0dbbeece14a9cd41ace9269e99
+  main.py: 5d9dfa13594d06713bd5d82b57461421
+  screen.py: 4ba3b381ea890b2c37d60c6645e1fe4b
+  state.py: 81bfa3e0a71a824e7124fd7f43317c38
+  timecube.py: 38e9b6c523581cbd3f80cff0b0536a22
+source_dir: ../timecube
+target_dir: /pyboard

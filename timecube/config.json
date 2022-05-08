@@ -1,0 +1,29 @@
+{
+  "timecube": {
+    "n_work_loops": 3,
+    "work_duration_s": 300,
+    "break_duration_s": 60,
+    "longbreak_duration_s": 120
+  },
+  "screen": {
+    "annulus_radius": 98,
+    "annulus_thickness": 40,
+    "spi": {
+      "id": 0,
+      "baudrate": 2000000,
+      "polarity": 0,
+      "phase": 0,
+      "mosi_pin": 3,
+      "sck_pin": 2
+    },
+    "cs_pin": 1,
+    "dc_pin": 0,
+    "rst_pin": 4,
+    "busy_pin": 5
+  },
+  "accelerometer": {
+    "x_pin": 26,
+    "y_pin": 27,
+    "z_pin": 28
+  }
+}

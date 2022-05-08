@@ -1,17 +1,14 @@
 import uasyncio as asyncio
-import sys
 import utime
 from math import ceil, floor
 
-from machine import Pin
-
-from accelerometer import Accelerometer
-from button import Button
 from state import State, Interval, Pause, Summary
+from screen import Screen
 
 
 class TimeCube:
-    def __init__(self, interval_cycle: list, pause: Pause, summary: Summary):
+    def __init__(self, screen: Screen, interval_cycle: list, pause: Pause, summary: Summary):
+        self.screen = screen
         self.interval_cycle = interval_cycle
         self.pause_state = pause
         self.summary_state = summary
@@ -39,6 +36,7 @@ class TimeCube:
     @classmethod
     def from_config(
         cls,
+        screen: Screen,
         n_work_loops: int,
         work_interval: Interval,
         break_interval: Interval,
@@ -53,15 +51,20 @@ class TimeCube:
         interval_cycle.append(work_interval)
         interval_cycle.append(longbreak_interval)
 
-        return cls(interval_cycle, pause, summary)
+        return cls(screen, interval_cycle, pause, summary)
 
     def __call__(self):
         self.state_start = utime.ticks_ms()
         self.state = self._current_interval
+        self._start_screen()
         self.interval_task = asyncio.create_task(self._start_interval_task())
 
     @property
-    def _current_interval(self):
+    def _next_interval(self) -> Interval:
+        return self.interval_cycle[(self.interval_id + 1) % len(self.interval_cycle)]
+
+    @property
+    def _current_interval(self) -> Interval:
         return self.interval_cycle[self.interval_id % len(self.interval_cycle)]
 
     def _transition_state(self, new_state: State):
@@ -79,32 +82,71 @@ class TimeCube:
     async def _start_interval_task(self, offset: float = 0):
         duration = self._current_interval.duration - offset
         if duration > 0:
-            print(f'starting {self._current_interval.kind} for {duration} seconds')
+            print('starting {} for {} seconds'.format(self._current_interval.kind, duration))
 
             n_steps = ceil(duration / self.state.update_interval)
             first_step = duration - (n_steps - 1) * self.state.update_interval
+            update_delay_total = 0
+
+            # todo: work out what the base rate should be, should have an average partial refresh too
+            update_delay_average = 1.7
+            time_left = duration
 
             elapsed_time = 0
-            for i in range(
-                n_steps
-            ):  # todo: dynamically update based on actual elapsed time (accounts for screen update delay)
-                sleep_duration = self.state.update_interval if i else first_step
+            for i in range(n_steps):
+                sleep_duration = (
+                    (time_left - update_delay_average * (n_steps - i)) / (n_steps - i)
+                    if i
+                    else first_step - update_delay_average
+                )
+                print(f'sleeping for {sleep_duration}, average delay: {update_delay_average}')
                 await asyncio.sleep(sleep_duration)
                 elapsed_time += sleep_duration
-                if self.state.update_callback is not None:
-                    self.state.update_callback(elapsed_time, duration)
-                print(f'{(floor(offset) + (i + 1)) / self._current_interval.duration:.0%}')
 
-            print(f'finished {self._current_interval.kind}')
-            if self.state.end_callback is not None:
-                self.state.end_callback()
+                update_start = utime.ticks_ms()
+                screen_time_remaining = max(round((duration - elapsed_time) / 60), 0)
+                screen_prop_remaining = 1 - (i + 1) / n_steps
+                self._update_screen(screen_time_remaining, screen_prop_remaining)
+                update_delay_total += utime.ticks_diff(utime.ticks_ms(), update_start) / 1000
+                print('update_delay_total', update_delay_total)
+
+                if i < n_steps - 1:
+                    print('{:.0%}'.format((floor(offset) + (i + 1)) / n_steps))
+                    update_delay_average = update_delay_total / (i + 1)
+                    time_left = duration - utime.ticks_diff(utime.ticks_ms(), self.state_start) / 1000
+
+                # print(update_delay_total, update_delay_average, time_left)
+
+            print('finished {}'.format(self._current_interval.kind))
+            # print('Before end callback:', utime.ticks_diff(utime.ticks_ms(), self.state_start) / 1000)
+            # if self.state.end_callback is not None:
+            #     self.state.end_callback()
+            # print('After end callback:', utime.ticks_diff(utime.ticks_ms(), self.state_start) / 1000)
+
+    def _start_screen(self):
+        self.screen.start_interval(
+            is_fill_black=True if self._current_interval.kind == 'work' else False,
+            remaining_time=self._current_interval.duration // 60,
+            remaining_prop=1,
+            next_interval=self._next_interval.kind,
+        )
+
+    def _update_screen(self, remaining_time: int, remaining_prop: float):
+        self.screen.update_interval(
+            remaining_time=remaining_time,
+            remaining_prop=remaining_prop,
+            next_interval=self._next_interval.kind,
+        )
 
     def next(self):
+        '''Start a new next interval'''
         if isinstance(self.state, Interval):
             self.interval_task.cancel()
 
             self.interval_id += 1
             self._transition_state(self._current_interval)
+            self.screen.rotate_left()  # screen rotates opposite direction
+            self._start_screen()
             self.interval_task = asyncio.create_task(self._start_interval_task())
             self.last_action = 'next'
 
@@ -114,11 +156,15 @@ class TimeCube:
 
             time_since_start = utime.ticks_diff(utime.ticks_ms(), self.state_start) / 1000
             if time_since_start < 1 and self.interval_id and self.last_action == 'prev':
+                # if you double back, go back to previous interval
                 self.summary_stats[f'{self._current_interval.kind}_restarts'] -= 1
                 self.interval_id -= 1
             else:
-                self.summary_stats['{self._current_interval.kind}_restarts'] += 1
+                # else go back to start of current one
+                self.summary_stats[f'{self._current_interval.kind}_restarts'] += 1
             self._transition_state(self._current_interval)
+            self.screen.rotate_right()  # screen rotates opposite direction
+            self._start_screen()
             self.interval_task = asyncio.create_task(self._start_interval_task())
             self.last_action = 'prev'
 
@@ -150,41 +196,3 @@ class TimeCube:
     # debug methods
     def print_summary_stats(self):
         print({k: round(v, 2) for k, v in self.summary_stats.items()})
-
-
-async def connect_stdin_stdout():
-    loop = asyncio.get_event_loop()
-    reader = asyncio.StreamReader()
-    protocol = asyncio.StreamReaderProtocol(reader)
-    await loop.connect_read_pipe(lambda: protocol, sys.stdin)
-    return reader
-
-
-async def main():
-    config = {'n_work_loops': 3, 'work_duration_s': 5, 'break_duration_s': 1, 'longbreak_duration_s': 2}
-    work_interval = Interval('work', 5, None, None, None)
-    break_interval = Interval('break', 1, None, None, None)
-    longbreak_interval = Interval('longbreak', 2, None, None, None)
-    pause = Pause('pause', None)
-    summary = Summary('summary', None)
-
-    timecube = TimeCube.from_config(3, work_interval, break_interval, longbreak_interval, pause, summary)
-    timecube()
-
-    # buttons
-    restart_pin = Pin(14, Pin.IN, Pin.PULL_DOWN)
-    restart = Button(restart_pin, timecube.prev)
-
-    next_pin = Pin(10, Pin.IN, Pin.PULL_DOWN)
-    next = Button(next_pin, timecube.next)
-
-    pause_pin = Pin(7, Pin.IN, Pin.PULL_DOWN)
-    pause = Button(pause_pin, timecube.pause)
-
-    sensor = Accelerometer(28, 27, 26, timecube.next, timecube.prev, timecube.pause, timecube.pause)
-
-    while True:
-        await asyncio.sleep(0)
-
-
-asyncio.run(main())

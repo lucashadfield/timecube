@@ -3,15 +3,23 @@ from machine import ADC
 
 
 class Accelerometer:
-    v_per_g = 0.33
+    V_PER_G = 0.33
+    X_OFFSET = 1.636004
+    Y_OFFSET = 1.644265
+    Z_OFFSET = 1.968865
+    READING_RANGE_MIN = 0
+    READING_RANGE_MAX = 65535
+    VOLT_RANGE_MIN = 0
+    VOLT_RANGE_MAX = 3.3
+
     # fmt:off
     state_lookup = {
-        (0, 0, 1): 1,
-        (-1, 0, 0): 2,
-        (0, 0, -1): 3,
-        (1, 0, 0): 4,
-        (0, -1, 0): 5, # pause
-        (0, 1, 0): 5
+        (0, 0, 1): 0,
+        (-1, 0, 0): 1,
+        (0, 0, -1): 2,
+        (1, 0, 0): 3,
+        (0, -1, 0): 4, # pause
+        (0, 1, 0): 4
     }
     # fmt: on
 
@@ -24,6 +32,7 @@ class Accelerometer:
         prev_fn,
         pause_fn,
         resume_fn,
+        async_sleep_ms=100,
     ):
         self.x = ADC(pin_x)
         self.y = ADC(pin_y)
@@ -32,8 +41,9 @@ class Accelerometer:
         self.prev_fn = prev_fn
         self.pause_fn = pause_fn
         self.resume_fn = resume_fn
-        self.curr_state = 1
-        self.new_state = None
+        self.async_sleep_ms = async_sleep_ms
+
+        self.initial_state = None
         asyncio.create_task(self.read_state())
 
     @staticmethod
@@ -42,33 +52,54 @@ class Accelerometer:
 
     async def read_state(self):
         while True:
-            x_raw = self.x.read_u16()
-            y_raw = self.y.read_u16()
-            z_raw = self.z.read_u16()
+            x_volt = self.map_range(
+                self.x.read_u16(),
+                self.READING_RANGE_MIN,
+                self.READING_RANGE_MAX,
+                self.VOLT_RANGE_MIN,
+                self.VOLT_RANGE_MAX,
+            )
+            y_volt = self.map_range(
+                self.y.read_u16(),
+                self.READING_RANGE_MIN,
+                self.READING_RANGE_MAX,
+                self.VOLT_RANGE_MIN,
+                self.VOLT_RANGE_MAX,
+            )
+            z_volt = self.map_range(
+                self.z.read_u16(),
+                self.READING_RANGE_MIN,
+                self.READING_RANGE_MAX,
+                self.VOLT_RANGE_MIN,
+                self.VOLT_RANGE_MAX,
+            )
 
-            x_volt = self.map_range(x_raw, 0, 65535, 0, 3.3)
-            y_volt = self.map_range(y_raw, 0, 65535, 0, 3.3)
-            z_volt = self.map_range(z_raw, 0, 65535, 0, 3.3)
-
-            x_g = (x_volt - 1.636004) / self.v_per_g
-            y_g = (y_volt - 1.644265) / self.v_per_g
-            z_g = (z_volt - 1.968865 + self.v_per_g) / self.v_per_g
+            x_g = (x_volt - self.X_OFFSET) / self.V_PER_G
+            y_g = (y_volt - self.Y_OFFSET) / self.V_PER_G
+            z_g = (z_volt - self.Z_OFFSET + self.V_PER_G) / self.V_PER_G
 
             state = self.state_lookup.get((round(x_g), round(y_g), round(z_g)), None)
-            if state != self.curr_state and state is not None:
-                if state == self.new_state:
-                    # changed
-                    if (state - self.curr_state == 1) or (state == 1 and self.curr_state == 4):
-                        self.next_fn()
-                    elif (state - self.curr_state == -1) or (state == 4 and self.curr_state == 1):
-                        self.prev_fn()
-                    elif state == 5:
-                        self.pause_fn()
-                    elif self.curr_state == 5 and state != 5:
-                        self.resume_fn()
-
-                    self.curr_state = state
+            if state is not None:
+                if self.initial_state is None:
+                    # set initial state
+                    self.initial_state = state
+                    self.current_state = state
                 else:
-                    self.new_state = state
+                    # check running state
+                    if state != self.current_state:
+                        # state changed
+                        print(
+                            f'state change from {self.current_state} to {state}',
+                        )
+                        if state == 4:
+                            self.pause_fn()
+                        elif self.current_state == 4:
+                            self.resume_fn()
+                        elif (state - self.current_state == 1) or (state == 0 and self.current_state == 3):
+                            self.prev_fn()
+                        elif (state - self.current_state == -1) or (state == 3 and self.current_state == 0):
+                            self.next_fn()
 
-            await asyncio.sleep_ms(100)
+                        self.current_state = state
+
+            await asyncio.sleep_ms(self.async_sleep_ms)

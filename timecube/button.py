@@ -1,10 +1,11 @@
 import uasyncio as asyncio
+from machine import Pin
 
 
 class Button:
     def __init__(
         self,
-        pin: int,
+        pin: Pin,
         on_press=None,
         on_release=None,
         debounce_ms: int = 50,
