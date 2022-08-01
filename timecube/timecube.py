@@ -103,9 +103,11 @@ class TimeCube:
                 await asyncio.sleep(sleep_duration)
                 elapsed_time += sleep_duration
 
-                update_start = utime.ticks_ms()
                 screen_time_remaining = max(round((duration - elapsed_time) / 60), 0)
+                print(f'screen_time_remaining: {duration}, {elapsed_time} - {(duration - elapsed_time - update_delay_total) / 60}')
                 screen_prop_remaining = 1 - (i + 1) / n_steps
+
+                update_start = utime.ticks_ms()
                 self._update_screen(screen_time_remaining, screen_prop_remaining)
                 update_delay_total += utime.ticks_diff(utime.ticks_ms(), update_start) / 1000
                 print('update_delay_total', update_delay_total)
@@ -159,7 +161,7 @@ class TimeCube:
             self.interval_task.cancel()
 
             time_since_start = utime.ticks_diff(utime.ticks_ms(), self.state_start) / 1000
-            if time_since_start < 1 and self.interval_id and self.last_action == 'prev':
+            if time_since_start < 5 and self.interval_id and self.last_action == 'prev':
                 # if you double back, go back to previous interval
                 self.summary_stats[f'{self._current_interval.kind}_restarts'] -= 1
                 self.interval_id -= 1

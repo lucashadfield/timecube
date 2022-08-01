@@ -15,11 +15,11 @@ class Accelerometer:
     # fmt:off
     state_lookup = {
         (0, 0, 1): 0,
-        (-1, 0, 0): 1,
+        (0, -1, 0): 1, # pause
         (0, 0, -1): 2,
-        (1, 0, 0): 3,
-        (0, -1, 0): 4, # pause
-        (0, 1, 0): 4
+        (0, 1, 0): 3,
+        (1, 0, 0): 4,
+        (-1, 0, 0): 4
     }
     # fmt: on
 
@@ -79,6 +79,7 @@ class Accelerometer:
             z_g = (z_volt - self.Z_OFFSET + self.V_PER_G) / self.V_PER_G
 
             state = self.state_lookup.get((round(x_g), round(y_g), round(z_g)), None)
+            # print(round(x_g), round(y_g), round(z_g))
             if state is not None:
                 if self.initial_state is None:
                     # set initial state
@@ -96,9 +97,9 @@ class Accelerometer:
                         elif self.current_state == 4:
                             self.resume_fn()
                         elif (state - self.current_state == 1) or (state == 0 and self.current_state == 3):
-                            self.prev_fn()
-                        elif (state - self.current_state == -1) or (state == 3 and self.current_state == 0):
                             self.next_fn()
+                        elif (state - self.current_state == -1) or (state == 3 and self.current_state == 0):
+                            self.prev_fn()
 
                         self.current_state = state
 

@@ -1,9 +1,9 @@
 {
   "timecube": {
     "n_work_loops": 3,
-    "work_duration_s": 300,
-    "break_duration_s": 60,
-    "longbreak_duration_s": 120
+    "work_duration_s": 1200,
+    "break_duration_s": 300,
+    "longbreak_duration_s": 900
   },
   "screen": {
     "annulus_radius": 98,
@@ -22,8 +22,8 @@
     "busy_pin": 5
   },
   "accelerometer": {
-    "x_pin": 26,
+    "x_pin": 28,
     "y_pin": 27,
-    "z_pin": 28
+    "z_pin": 26
   }
 }

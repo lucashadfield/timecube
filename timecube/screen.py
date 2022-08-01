@@ -20,7 +20,7 @@ class Screen:
         self.annulus_thickness = annulus_thickness
 
         self.display = display
-        self.rotation_index = 0
+        self.rotation_index = 1
         self.is_fill_black = True
 
         # refresh screen
