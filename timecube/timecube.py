@@ -103,7 +103,7 @@ class TimeCube:
                 await asyncio.sleep(sleep_duration)
                 elapsed_time += sleep_duration
 
-                screen_time_remaining = max(round((duration - elapsed_time) / 60), 0)
+                screen_time_remaining = max(round((duration - elapsed_time - update_delay_total) / 60), 0)
                 print(f'screen_time_remaining: {duration}, {elapsed_time} - {(duration - elapsed_time - update_delay_total) / 60}')
                 screen_prop_remaining = 1 - (i + 1) / n_steps
 
