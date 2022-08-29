@@ -3,6 +3,7 @@
 # uses rshell to flash files
 # --force to reflash all files
 # --clean to remove all files on microcontroller and exit
+# --repl to go into interactive repl after flashing
 
 import hashlib
 import os
@@ -50,7 +51,9 @@ def main() -> None:
     for filename in local_files:
         md5 = hashlib.md5(open(local_path / filename, 'rb').read()).hexdigest()
         if filename not in flash_conf['md5sum'] or flash_conf['md5sum'][filename] != md5 or args['force']:
-            os.system(f'rshell --quiet cp {local_path / filename} {flash_conf["target_dir"]}/.')
+            exit_status = os.system(f'rshell --quiet cp {local_path / filename} {flash_conf["target_dir"]}/.')
+            if exit_status != 0:
+                sys.exit()
             updated = True
 
         flash_conf['md5sum'][filename] = md5
@@ -58,11 +61,13 @@ def main() -> None:
     if updated:
         write_config(flash_conf)
 
-        if args['repl']:
-            os.system('rshell --quiet repl')
-        else:
-            os.system('rshell --quiet repl \~ import machine~machine.soft_reset\(\)~')
+        if not args['repl']:
+            # `sudo apt-get install moreutils` to get `ts`
+            os.system('rshell --quiet repl \~ import machine~machine.soft_reset\(\)~ | ts "%H:%M:%S"')
 
+    if args['repl']:
+        # `sudo apt-get install moreutils` to get `ts`
+        os.system('rshell --quiet repl | ts "%H:%M:%.S"')
 
 if __name__ == '__main__':
     main()
