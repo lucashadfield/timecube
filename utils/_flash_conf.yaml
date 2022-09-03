@@ -1,14 +1,17 @@
 md5sum:
-  accelerometer.py: 716137c174dd5b0733e64b466fa02570
+  accelerometer.py: 801c6bc0fbe55d7ff7d92fac76437b9a
+  battery.py: 2a84a834ee6f381037d97269a88c9475
   button.py: 5f79f3831e5aba44820aa2b1e3c94fad
-  config.json: b17a9649e9207884880a3e9be6702f60
+  config.json: 7375703bd55d26a9ddbfa00a136fea73
   config.py: 4c5a42aa9730c343c771dec086dcbac0
+  display.py: 9d8b1f272d1a6a47240f15abf8fbb9d0
   epaper1in54v2.py: e6f589a12d605a5fcad439448cc9a659
+  extended_framebuf.py: deb91d042c90e3365bc77cbbf697a5fe
   font.py: 163c8b2a2a54a3551a5820bd53ddcbf6
   framebuffer.py: 28c6ed0dbbeece14a9cd41ace9269e99
-  main.py: 5d9dfa13594d06713bd5d82b57461421
-  screen.py: 1bc16623b7328efd4f678a4949f8a4da
+  main.py: ee626925220917088da41ff7adc29da6
+  screen.py: b0a6038bc78c9924fc39136c0493e954
   state.py: 81bfa3e0a71a824e7124fd7f43317c38
-  timecube.py: e8ee5ac43eb1df355c03748026704689
+  timecube.py: eefc534536a4c9e8de5cee82716955c8
 source_dir: ../timecube
 target_dir: /pyboard

@@ -3,10 +3,9 @@ import math
 
 MONO_VLSB = framebuf.MONO_VLSB
 MONO_HLSB = framebuf.MONO_HLSB
-MONO_HMSB = framebuf.MONO_HMSB
 
 
-class ExtendedFrameBuffer(framebuf.FrameBuffer):
+class FrameBuffer(framebuf.FrameBuffer):
     N = 200
 
     def rotate(self, x, y, rotation_index):
