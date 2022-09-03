@@ -1,12 +1,15 @@
 {
+  "force_diagnostics": false,
   "timecube": {
     "n_work_loops": 3,
     "work_duration_s": 1200,
     "break_duration_s": 300,
-    "longbreak_duration_s": 900
+    "longbreak_duration_s": 900,
+    "delay_recency_weight": 0.2,
+    "goto_prev_timeout_s": 10
   },
   "screen": {
-    "annulus_radius": 98,
+    "annulus_radius": 96,
     "annulus_thickness": 40,
     "spi": {
       "id": 0,
@@ -24,6 +27,12 @@
   "accelerometer": {
     "x_pin": 28,
     "y_pin": 27,
-    "z_pin": 26
+    "z_pin": 26,
+    "sample_period_ms": 200
+  },
+  "battery": {
+    "voltage_pin": 29,
+    "charge_pin": 7,
+    "sample_period_ms": 60000
   }
 }

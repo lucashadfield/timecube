@@ -1,7 +1,8 @@
-from micropython import const
 from time import sleep_ms
+
 import ustruct
 from machine import Pin, SPI
+from micropython import const
 
 # Display resolution in default (portrait) orientation
 EPD_WIDTH = const(200)
@@ -39,7 +40,7 @@ TERMINATE_FRAME_READ_WRITE = const(0xFF)  # not in datasheet, aka NOOP ??????
 BUSY = const(1)  # 1=busy, 0=idle
 
 
-class EPD:
+class Display:
     def __init__(self, spi: dict, cs: int, dc: int, rst: int, busy: int):
         SPI(0, baudrate=2000000, polarity=0, phase=0, mosi=Pin(3), sck=Pin(2))
         self.spi = spi = SPI(
@@ -105,9 +106,7 @@ class EPD:
             self._data(bytearray([((EPD_HEIGHT - 1) >> 8) & 0xFF]))
             self._data(bytearray([0x00]))  # GD = 0 SM = 0 TB = 0
 
-            self._command(
-                DATA_ENTRY_MODE_SETTING, b'\x01'
-            )  # data entry mode. X+, Y- from bottom left in landscape
+            self._command(DATA_ENTRY_MODE_SETTING, b'\x01')  # data entry mode. X+, Y- from bottom left in landscape
 
             self._command(BORDER_WAVEFORM_CONTROL, b'\x03')  # BorderWavefrom
 

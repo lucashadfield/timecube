@@ -25,25 +25,29 @@ class Accelerometer:
 
     def __init__(
         self,
-        pin_x: int,
-        pin_y: int,
-        pin_z: int,
+        x_pin: int,
+        y_pin: int,
+        z_pin: int,
+        run_fn,
         next_fn,
         prev_fn,
         pause_fn,
         resume_fn,
-        async_sleep_ms=100,
+        async_sleep_ms,
+        diagnostics_callback,
     ):
-        self.x = ADC(pin_x)
-        self.y = ADC(pin_y)
-        self.z = ADC(pin_z)
+        self.x = ADC(x_pin)
+        self.y = ADC(y_pin)
+        self.z = ADC(z_pin)
+        self.run_fn = run_fn
         self.next_fn = next_fn
         self.prev_fn = prev_fn
         self.pause_fn = pause_fn
         self.resume_fn = resume_fn
         self.async_sleep_ms = async_sleep_ms
+        self.diagnostics_callback = diagnostics_callback
 
-        self.initial_state = None
+        self.current_state = None
         asyncio.create_task(self.read_state())
 
     @staticmethod
@@ -79,28 +83,34 @@ class Accelerometer:
             z_g = (z_volt - self.Z_OFFSET + self.V_PER_G) / self.V_PER_G
 
             state = self.state_lookup.get((round(x_g), round(y_g), round(z_g)), None)
-            # print(round(x_g), round(y_g), round(z_g))
+
             if state is not None:
-                if self.initial_state is None:
+                if self.current_state is None:
                     # set initial state
-                    self.initial_state = state
                     self.current_state = state
+                    self.run_fn(state)
+                    self.diagnostics_callback('rot_state', self.current_state)
                 else:
                     # check running state
                     if state != self.current_state:
                         # state changed
                         print(
-                            f'state change from {self.current_state} to {state}',
+                            f'accelerometer: updating state, current_state={self.current_state}, state={state}',
                         )
                         if state == 4:
                             self.pause_fn()
                         elif self.current_state == 4:
                             self.resume_fn()
                         elif (state - self.current_state == 1) or (state == 0 and self.current_state == 3):
-                            self.next_fn()
+                            self.next_fn(state)
                         elif (state - self.current_state == -1) or (state == 3 and self.current_state == 0):
-                            self.prev_fn()
+                            self.prev_fn(state)
+                        else:
+                            print(
+                                f'accelerometer: unmapped state transition, current_state={self.current_state}, state={state}'
+                            )
 
                         self.current_state = state
+                        self.diagnostics_callback('rot_state', self.current_state)
 
             await asyncio.sleep_ms(self.async_sleep_ms)

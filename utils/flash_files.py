@@ -9,6 +9,7 @@ import hashlib
 import os
 import sys
 from pathlib import Path
+
 import yaml
 
 CONF_FILE = '_flash_conf.yaml'
@@ -64,10 +65,13 @@ def main() -> None:
         if not args['repl']:
             # `sudo apt-get install moreutils` to get `ts`
             os.system('rshell --quiet repl \~ import machine~machine.soft_reset\(\)~ | ts "%H:%M:%S"')
+            # os.system('rshell --quiet repl \~ import machine~machine.soft_reset\(\)~ | ts -i "%s"')
 
     if args['repl']:
         # `sudo apt-get install moreutils` to get `ts`
         os.system('rshell --quiet repl | ts "%H:%M:%.S"')
+        # os.system('rshell --quiet repl | ts -i "%.s"')
+
 
 if __name__ == '__main__':
     main()
