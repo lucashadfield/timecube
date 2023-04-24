@@ -114,27 +114,22 @@ class TimeCube:
             update_delay_total = 0
 
             time_left = duration - self.start_delay
-            elapsed_time = 0
 
             update_times = []
             error = 0
             for i in range(n_steps):
                 if i:
-                    sleep_duration = self.state.update_interval - predicted_screen_delay - error
-                    self.diagnostics_callback('delay', f'{predicted_screen_delay:.2f}')
+                    sleep_duration = self.state.update_interval - predicted_next_update_time - error
+                    self.diagnostics_callback('delay', f'{predicted_next_update_time:.2f}')
                 else:
                     sleep_duration = first_step - self.start_delay
 
-                print(f'{i} timecube: sleeping for {sleep_duration} seconds')
+                print(f'timecube: sleeping for {sleep_duration} seconds')
                 await asyncio.sleep(sleep_duration)
 
-                # work out how many minutes are left - sent to screen
-                # todo: fix this (need a cleaner way to keep track of how many minutes left)
-                elapsed_time += sleep_duration
-                screen_time_remaining = max(round((duration - elapsed_time - update_delay_total) / 60), 0)
-                screen_prop_remaining = 1 - (i + 1) / n_steps
-
-                self._update_screen(screen_time_remaining, screen_prop_remaining)
+                # update screen value and annulus
+                remaining_time = n_steps - i - 1
+                self._update_screen(remaining_time, remaining_time / n_steps)
 
                 update_end = utime.ticks_ms()
                 update_time = (utime.ticks_diff(update_end, update_start) / 1000) - sleep_duration
@@ -143,7 +138,7 @@ class TimeCube:
                 update_times.append(update_time)
                 update_delay_total += update_time
 
-                predicted_screen_delay = self._predict_update_time(update_times)
+                predicted_next_update_time = self._predict_update_time(update_times)
 
                 # accumulate errors
                 time_left_new = duration - utime.ticks_diff(utime.ticks_ms(), self.state_start) / 1000
@@ -152,7 +147,7 @@ class TimeCube:
                     error += self.start_delay - update_time
                 time_left = time_left_new
 
-                # print(f'{i} timecube: update_time={update_time}, update_delay_total={update_delay_total}, predicted_screen_delay={predicted_screen_delay}, time_left={time_left}')
+                print(f'timecube: i={i}, update_time={update_time}, update_delay_total={update_delay_total}, predicted_next_update_time={predicted_next_update_time}, time_left={time_left}')
 
             print(f'timecube: finished {self._current_interval.kind} interval')
 

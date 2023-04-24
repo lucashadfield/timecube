@@ -88,10 +88,6 @@ class Screen:
         fill = BLACK if self.is_fill_black else WHITE
         completed_prop = 1 - remaining_prop
 
-        # self.fb.fill_circle(
-        #     100, 100, self.annulus_radius - self.annulus_thickness - 4, WHITE, self.rotation_index
-        # )  # clear the centre of the circle
-
         # draw annulus
         self.fb.fill_annulus(
             ANNULUS_X, ANNULUS_Y, self.annulus_radius, self.annulus_thickness, completed_prop, fill, self.rotation_index
@@ -167,7 +163,7 @@ class Screen:
         Used to signify if a longbreak is up next
         '''
 
-        self.fb.circle(180, 180, 9, BLACK, self.rotation_index)
+        self.fb.fill_circle(180, 180, 9, BLACK, self.rotation_index)
 
     def _rotate_char(self, char):
         '''

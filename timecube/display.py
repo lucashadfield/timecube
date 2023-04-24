@@ -136,13 +136,12 @@ class Display:
 
     def wait_until_idle(self):
         while self.busy.value() == BUSY:
-            sleep_ms(100)
+            sleep_ms(10)
 
     def reset(self):
         self.rst(0)
-        sleep_ms(200)
+        sleep_ms(20)
         self.rst(1)
-        sleep_ms(200)
 
     def set_lut(self, lut):
         self._command(WRITE_LUT_REGISTER, lut)
