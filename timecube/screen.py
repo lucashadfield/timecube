@@ -97,7 +97,11 @@ class Screen:
         self.fb.annulus(ANNULUS_X, ANNULUS_Y, self.annulus_radius, self.annulus_thickness, BLACK, self.rotation_index)
 
         # draw remaining time
-        self._draw_central_glyphs(str(int(remaining_time)), ANNULUS_X, ANNULUS_Y)
+        if remaining_time > 0:
+            self._draw_central_glyphs(str(int(remaining_time)), ANNULUS_X, ANNULUS_Y)
+        else:
+            # draw arrow
+            self._draw_central_glyphs('R', ANNULUS_X, ANNULUS_Y+6)
 
         # draw longbreak icon
         if draw_longbreak_icon:
@@ -107,16 +111,32 @@ class Screen:
         if self.show_diagnostics:
             self._draw_diagnostics(update_display=False)
 
+
+        # store last time in case we need to redraw
+        self.last_remaining_time = remaining_time
+
         # write buffer to screen
         self._display()
 
     def pause(self):
-        # todo
-        pass
+        # draw an empty circle first
+        self.fb.fill_circle(ANNULUS_X, ANNULUS_Y, self.annulus_radius - self.annulus_thickness - 2, WHITE, self.rotation_index)
+
+        # draw pause icon
+        self._draw_central_glyphs('P', ANNULUS_X, ANNULUS_Y)
+
+        # write buffer to screen
+        self._display()
 
     def resume(self):
-        # todo
-        pass
+        # draw an empty circle first
+        self.fb.fill_circle(ANNULUS_X, ANNULUS_Y, self.annulus_radius - self.annulus_thickness - 2, WHITE, self.rotation_index)
+
+        # draw pause icon
+        self._draw_central_glyphs(str(int(self.last_remaining_time)), ANNULUS_X, ANNULUS_Y)
+
+        # write buffer to screen
+        self._display()
 
     def update_screen_rotation(self, accelerometer_state):
         '''
@@ -175,8 +195,15 @@ class Screen:
 
         Returns (str): character from font glyphs
         '''
-
-        return chr(ord('A') + int(char) + (10 * self.rotation_index))
+        if char in ('P', 'R', 'L'):
+            if char == 'P':
+                return chr(ord('i') + self.rotation_index)
+            if char == 'R':
+                return chr(ord('m') + self.rotation_index)
+            if char == 'L':
+                return chr(ord('q') + self.rotation_index)
+        else:
+            return chr(ord('A') + int(char) + (10 * self.rotation_index))
 
     def _draw_central_glyphs(self, s, x, y):
         '''
@@ -191,51 +218,49 @@ class Screen:
         glyphs = []
         for char in s:
             glyph = font.get_ch(self._rotate_char(char))
-            glyphs.append((glyph[0], glyph[1], glyph[2], font._min_width[char]))
-        # glyphs = [font.get_ch(self._rotate_char(char)) for char in s]
+            glyphs.append((glyph[0], glyph[1], glyph[2], font._min_width.get(char, 64)))
+
+        # write the characters in reverse order if rotated 180 or 270 degrees
+        glyphs = glyphs if self.rotation_index in (0, 1) else glyphs[::-1]
+
         full_width = sum([g[3] for g in glyphs])
         full_height = max([g[1] for g in glyphs])
 
-        if self.rotation_index in (0, 1):
-            for glyph, height, max_width, min_width in glyphs:
-                fontbuf = bytearray(glyph)
-                fbc = framebuf.FrameBuffer(fontbuf, max_width, height, framebuf.MONO_HLSB)
-                if self.rotation_index == 0:
-                    self.fb.blit(
-                        fbc,
-                        x - (full_width // 2) - ((max_width - min_width) // 2),
-                        y - (full_height // 2),
-                        WHITE,
-                    )
-                    x += min_width
-                elif self.rotation_index == 1:
-                    self.fb.blit(
-                        fbc,
-                        x - (full_height // 2),
-                        y - (full_width // 2) - ((max_width - min_width) // 2),
-                        WHITE,
-                    )
-                    y += min_width
-        else:
-            for glyph, height, max_width, min_width in glyphs[::-1]:
-                fontbuf = bytearray(glyph)
-                fbc = framebuf.FrameBuffer(fontbuf, max_width, height, framebuf.MONO_HLSB)
-                if self.rotation_index == 2:
-                    self.fb.blit(
-                        fbc,
-                        x - (full_width // 2) - ((max_width - min_width) // 2),
-                        y - (full_height // 2),
-                        WHITE,
-                    )
-                    x += min_width
-                elif self.rotation_index == 3:
-                    self.fb.blit(
-                        fbc,
-                        x - (full_height // 2),
-                        y - (full_width // 2) - ((max_width - min_width) // 2),
-                        WHITE,
-                    )
-                    y += min_width
+        for glyph, height, max_width, min_width in glyphs:
+            fontbuf = bytearray(glyph)
+            fbc = framebuf.FrameBuffer(fontbuf, max_width, height, framebuf.MONO_HLSB)
+            if self.rotation_index == 0:
+                self.fb.blit(
+                    fbc,
+                    x - (full_width // 2) - ((max_width - min_width) // 2),
+                    y - (full_height // 2),
+                    WHITE,
+                )
+                x += min_width
+            elif self.rotation_index == 1:
+                self.fb.blit(
+                    fbc,
+                    x - (full_height // 2),
+                    y - (full_width // 2) - ((max_width - min_width) // 2),
+                    WHITE,
+                )
+                y += min_width
+            elif self.rotation_index == 2:
+                self.fb.blit(
+                    fbc,
+                    x - (full_width // 2) - ((max_width - min_width) // 2),
+                    y - (full_height // 2),
+                    WHITE,
+                )
+                x += min_width
+            elif self.rotation_index == 3:
+                self.fb.blit(
+                    fbc,
+                    x - (full_height // 2),
+                    y - (full_width // 2) - ((max_width - min_width) // 2),
+                    WHITE,
+                )
+                y += min_width
 
     def _draw_diagnostics(self, update_display=True):
         '''

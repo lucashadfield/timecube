@@ -91,8 +91,8 @@ async def main():
         timecube.run,
         timecube.next,
         timecube.prev,
-        timecube.pause,
-        timecube.pause,
+        timecube.pause_resume,
+        timecube.pause_resume,
         config['accelerometer']['sample_period_ms'],
         diagnostics_callback,
     )

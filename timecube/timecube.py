@@ -226,7 +226,7 @@ class TimeCube:
             self.interval_task = asyncio.create_task(self._start_interval_task())
             self.last_action = 'prev'
 
-    def pause(self):
+    def pause_resume(self):
         if isinstance(self.state, Interval):
             # if in interval -> pause
             self.interval_task.cancel()
@@ -239,6 +239,7 @@ class TimeCube:
             # if in pause -> resume
             self._transition_state(self._current_interval)
             self.interval_task = asyncio.create_task(self._start_interval_task(self.saved_interval_duration))
+            self.screen.resume()
         self.last_action = 'pause'
 
     def summary(self):
