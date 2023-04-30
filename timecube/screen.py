@@ -101,7 +101,15 @@ class Screen:
             self._draw_central_glyphs(str(int(remaining_time)), ANNULUS_X, ANNULUS_Y)
         else:
             # draw arrow
-            self._draw_central_glyphs('R', ANNULUS_X, ANNULUS_Y+6)
+            print('rotation_index', self.rotation_index)
+            offset_map = {
+                0: (ANNULUS_X + 6, ANNULUS_Y),
+                1: (ANNULUS_X, ANNULUS_Y + 6),
+                2: (ANNULUS_X - 6, ANNULUS_Y),
+                3: (ANNULUS_X, ANNULUS_Y - 6),
+            }
+
+            self._draw_central_glyphs('R', *offset_map[self.rotation_index])
 
         # draw longbreak icon
         if draw_longbreak_icon:
