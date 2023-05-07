@@ -2,7 +2,7 @@ md5sum:
   accelerometer.py: a8fe3c9385e4f5656216a49aae5d0a73
   battery.py: 38d4db103232350f738617a7d2263a72
   button.py: 5f79f3831e5aba44820aa2b1e3c94fad
-  config.json: 4ac8dc05bc4283337099c91ba359a818
+  config.json: 7375703bd55d26a9ddbfa00a136fea73
   config.py: 4c5a42aa9730c343c771dec086dcbac0
   display.py: ad331a9b9607f20ae172508af9d17f4a
   epaper1in54v2.py: e6f589a12d605a5fcad439448cc9a659

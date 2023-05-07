@@ -2,7 +2,7 @@
   "force_diagnostics": false,
   "timecube": {
     "n_work_loops": 3,
-    "work_duration_s": 1500,
+    "work_duration_s": 1200,
     "break_duration_s": 300,
     "longbreak_duration_s": 900,
     "delay_recency_weight": 0.2,
